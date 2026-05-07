@@ -1,11 +1,12 @@
+set -e
 git clone https://github.com/GengWei1997/linux.git --branch raphael-$1 --depth 1 linux
 patch linux/scripts/package/builddeb < builddeb.patch
 cd linux
 git add .
 git commit -m "builddeb: Add Xiaomi Raphael DTBs to boot partition"
 wget -O arch/arm64/configs/raphael.config https://raw.githubusercontent.com/GengWei1997/kernel-deb/refs/heads/main/uefi-raphael.config
-make -j$(nproc) ARCH=arm64 LLVM=-21 defconfig raphael.config
-make -j$(nproc) ARCH=arm64 LLVM=-21 deb-pkg
+make -j$(nproc) ARCH=arm64 LLVM=-22 defconfig raphael.config
+make -j$(nproc) ARCH=arm64 LLVM=-22 deb-pkg
 cd ..
 
 IMAGE_DEB=$(ls -1 linux-image-*.deb 2>/dev/null | grep -v '\-dbg_' | head -n1)
@@ -17,6 +18,9 @@ fi
 if [ -n "$HEADERS_DEB" ]; then
   mv "$HEADERS_DEB" linux-headers-xiaomi-raphael.deb
 fi
+
+cp linux/arch/arm64/boot/Image.gz .
+cp linux/arch/arm64/boot/dts/qcom/sm8150-xiaomi-raphael.dtb .
 
 rm -rf linux
 

@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       kernel_version:
-        description: '内核版本号 (如 6.18)'
+        description: '内核版本号 (如 7.0)'
         required: true
-        default: '6.18'
+        default: '7.0'
 
 # 工作流配置
 jobs:
@@ -40,7 +40,7 @@ jobs:
           
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          sudo ./llvm.sh 21
+          sudo ./llvm.sh 22
       
       # 设置 ccache 缓存
       - name: 设置 ccache
@@ -109,4 +109,4 @@ jobs:
         with:
           name: kernel-packages-v${{ inputs.kernel_version }}
           path: |
-            *.deb
+            *.deb Image.gz sm8150-xiaomi-raphael.dtb

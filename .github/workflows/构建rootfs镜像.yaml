@@ -92,10 +92,6 @@ jobs:
           curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb \
             "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb" || echo "下载 firmware-xiaomi-raphael.deb 失败，可能 Release 不存在"
           
-          # 下载设备树文件 dtb
-          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/sm8150-xiaomi-raphael.dtb \
-            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/sm8150-xiaomi-raphael.dtb" || echo "下载 sm8150-xiaomi-raphael.dtb 失败，可能 Release 不存在"
-          
           # Desktop版本需要额外的alsa包
           if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
             curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb \
