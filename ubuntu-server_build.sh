@@ -9,7 +9,7 @@ then
 fi
 
 # 设置 Ubuntu 版本
-UBUNTU_VERSION="noble"
+UBUNTU_VERSION="resolute"
 
 # 创建根文件系统镜像
 truncate -s 3G rootfs.img
@@ -38,10 +38,10 @@ export DEBIAN_FRONTEND=noninteractive
 
 # 配置清华镜像源
 cat > rootdir/etc/apt/sources.list << 'EOF'
-deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble main restricted universe multiverse
-deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-updates main restricted universe multiverse
-deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-backports main restricted universe multiverse
-deb http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ resolute main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ resolute-updates main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ resolute-backports main restricted universe multiverse
+deb http://ports.ubuntu.com/ubuntu-ports/ resolute-security main restricted universe multiverse
 EOF
 
 # 更新系统
@@ -49,7 +49,7 @@ chroot rootdir apt update
 chroot rootdir apt upgrade -y
 
 # 安装基础软件包
-chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata language-pack-zh-hans dnsmasq iptables iproute2
+chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano network-manager initramfs-tools chrony curl wget locales tzdata language-pack-zh-hans dnsmasq iptables iproute2
 
 # 设置时区和语言
 echo "Asia/Shanghai" > rootdir/etc/timezone
