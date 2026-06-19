@@ -25,7 +25,7 @@ kmake() {
   fi
 }
 
-kmake defconfig cepheus.config
+kmake cepheus_defconfig
 kmake deb-pkg
 cd ..
 
