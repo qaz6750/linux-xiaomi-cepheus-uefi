@@ -118,22 +118,9 @@ jobs:
         run: |
           echo "开始构建 ${{ env.SYSTEM_TYPE }} 镜像..."
           
-          # 根据系统类型执行对应的构建脚本
-          case "${{ env.SYSTEM_TYPE }}" in
-            "ubuntu-desktop")
-              sudo sh ubuntu-desktop_build.sh "${{ env.DESKTOP_ENV }}" "${{ env.KERNEL_VERSION }}"
-              ;;
-            "ubuntu-gnome")
-              sudo sh ubuntu-gnome_build.sh "${{ env.KERNEL_VERSION }}"
-              ;;
-            "ubuntu-server")
-              sudo sh ubuntu-server_build.sh "${{ env.KERNEL_VERSION }}"
-              ;;
-            *)
-              echo "错误: 未知的系统类型: ${{ env.SYSTEM_TYPE }}"
-              exit 1
-              ;;
-          esac
+          # 统一调用模块化构建编排器 build.sh
+          # 参数: <system_type> <kernel_version> [desktop_env]
+          sudo bash build.sh "${{ env.SYSTEM_TYPE }}" "${{ env.KERNEL_VERSION }}" "${{ env.DESKTOP_ENV }}"
           
           echo "镜像构建完成!"
           
