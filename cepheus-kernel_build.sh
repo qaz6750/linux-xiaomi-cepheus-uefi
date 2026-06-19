@@ -15,14 +15,8 @@ git -c user.name="cepheus-ci" -c user.email="ci@localhost" commit -m "builddeb: 
 
 # 统一的内核 make 封装：
 # - 始终使用 LLVM=-22 工具链 (clang-22 / ld.lld-22 等)
-# - 若环境中存在 ccache，则用 ccache 包裹 clang-22 加速重复编译 (CI 缓存命中时显著提速)
-# - 本地无 ccache 时自动回退到普通编译
 kmake() {
-  if command -v ccache >/dev/null 2>&1; then
-    make -j"$(nproc)" ARCH=arm64 LLVM=-22 CC="ccache clang-22" HOSTCC="ccache clang-22" "$@"
-  else
-    make -j"$(nproc)" ARCH=arm64 LLVM=-22 "$@"
-  fi
+  make -j"$(nproc)" ARCH=arm64 LLVM=-22 "$@"
 }
 
 kmake cepheus_defconfig
