@@ -11,7 +11,45 @@
 - **Ubuntu GNOME** - 带 GNOME 桌面环境的 Ubuntu 系统
 - **Ubuntu Server** - 无图形界面的 Ubuntu 服务器系统
 
-## 📋 目前工作
+## �️ 项目结构
+
+系统镜像构建采用模块化设计，便于维护和扩展：
+
+```
+build.sh                      # 构建编排器（入口）
+config/build-config.sh        # 集中配置：系统类型 → 镜像大小/版本/软件包映射
+scripts/                      # 按阶段拆分的构建脚本（带时间戳日志）
+  01-create-image.sh          #   创建并挂载 ext4 镜像
+  02-bootstrap.sh             #   debootstrap 安装基础系统
+  03-mount-dev.sh             #   绑定挂载 /dev /proc /sys
+  04-config-network.sh        #   主机名与 DNS
+  05-apt-setup.sh             #   配置清华 apt 源
+  06-install-all-packages.sh  #   安装基础/桌面/设备软件包
+  07-config-locale.sh         #   时区与中文语言环境
+  08-add-screen-commands.sh   #   server 屏幕命令与自动熄屏
+  09-install-kernel.sh        #   安装内核/固件/ALSA deb
+  10-config-ncm.sh            #   USB NCM 网络共享
+  11-config-fstab.sh          #   UEFI fstab (esp + linux 分区)
+  12-create-users.sh          #   创建用户与 SSH 配置
+  13-config-efi.sh            #   grub-efi-arm64 引导配置
+  14-config-power.sh          #   电源管理（禁用 WiFi 省电）
+  15-cleanup.sh               #   清理 apt 缓存与监管证书
+  16-finalize.sh              #   卸载并打包 rootfs.7z
+cepheus-kernel_build.sh       # 内核编译脚本
+firmware-xiaomi-cepheus/      # 设备固件包
+alsa-xiaomi-cepheus/          # ALSA UCM 音频配置包
+```
+
+本地构建（需 root）：
+
+```bash
+# 先准备内核包目录 xiaomi-cepheus-debs_<内核版本>/，放入 *-xiaomi-cepheus.deb
+sudo ./build.sh ubuntu-gnome 7.1            # GNOME 桌面版
+sudo ./build.sh ubuntu-server 7.1           # 服务器版
+sudo ./build.sh ubuntu-desktop 7.1 phosh-full   # Phosh 移动桌面版
+```
+
+## �📋 目前工作
 
 - ✅ Wi-Fi (2.4Ghz，5Ghz)
 - ✅ 蓝牙 (文件传输，音频)
