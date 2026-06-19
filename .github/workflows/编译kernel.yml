@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       kernel_version:
-        description: '内核版本号 (如 7.0)'
+        description: '内核版本号 (如 7.1)'
         required: true
-        default: '7.0'
+        default: '7.1'
 
 # 工作流配置
 jobs:
@@ -70,7 +70,7 @@ jobs:
           export PATH="/usr/lib/ccache:$PATH"
           
           # 执行内核编译脚本
-          sudo sh raphael-kernel_build.sh ${{ inputs.kernel_version }}
+          sudo sh cepheus-kernel_build.sh ${{ inputs.kernel_version }}
       
       # 获取当前时间戳
       - name: 获取构建时间
@@ -87,19 +87,19 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: kernel-v${{ inputs.kernel_version }}
-          name: "xiaomi raphael linux内核 v${{ inputs.kernel_version }}"
+          name: "xiaomi cepheus linux内核 v${{ inputs.kernel_version }}"
           body: |
-            xiaomi raphael linux内核
+            xiaomi cepheus linux内核
             - 版本: ${{ inputs.kernel_version }}
             - 构建时间: ${{ steps.get-timestamp.outputs.timestamp }}
             - 构建 ID: ${{ env.BUILD_TIMESTAMP }}
           draft: false
           prerelease: false
           files: |
-            linux-image-xiaomi-raphael.deb
-            linux-headers-xiaomi-raphael.deb
-            firmware-xiaomi-raphael.deb
-            alsa-xiaomi-raphael.deb
+            linux-image-xiaomi-cepheus.deb
+            linux-headers-xiaomi-cepheus.deb
+            firmware-xiaomi-cepheus.deb
+            alsa-xiaomi-cepheus.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -111,4 +111,4 @@ jobs:
           path: |
             *.deb
             Image.gz
-            sm8150-xiaomi-raphael.dtb
+            sm8150-xiaomi-cepheus.dtb

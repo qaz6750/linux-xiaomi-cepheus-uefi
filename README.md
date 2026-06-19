@@ -1,10 +1,10 @@
-# 小米 Raphael 设备 Linux UEFI 系统镜像构建项目
+# 小米 Cepheus 设备 Linux UEFI 系统镜像构建项目
 
-本项目提供用于小米 Raphael 设备（Redmi K20 Pro）的 Debian/Ubuntu Linux UEFI 系统镜像构建脚本和自动化工作流，支持桌面环境和服务器版本。
+本项目提供用于小米 Cepheus 设备（小米9（Mi 9））的 Debian/Ubuntu Linux UEFI 系统镜像构建脚本和自动化工作流，支持桌面环境和服务器版本。
 
 ## 📋 项目概述
 
-本项目包含完整的构建工具链，可用于构建适用于小米 Raphael 设备的 Linux UEFI 系统镜像，包括：
+本项目包含完整的构建工具链，可用于构建适用于小米 Cepheus 设备的 Linux UEFI 系统镜像，包括：
 
 - **内核编译工作流** - 自动化编译定制的 Linux 内核
 - **Debian Desktop** - 带 Phosh 桌面环境的 Debian 系统
@@ -104,12 +104,12 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 - 如何更新内核
 	- 下载新的内核deb文件
-	- linux-image-xiaomi-raphael.deb
-	- linux-headers-xiaomi-raphael.deb
+	- linux-image-xiaomi-cepheus.deb
+	- linux-headers-xiaomi-cepheus.deb
 
 	- 运行命令：
-	- dpkg -i linux-image-xiaomi-raphael.deb
-	- dpkg -i linux-headers-xiaomi-raphael.deb
+	- dpkg -i linux-image-xiaomi-cepheus.deb
+	- dpkg -i linux-headers-xiaomi-cepheus.deb
 
 	- 注意：请在安装.deb文件后按以下任一方法操作：
 
@@ -132,7 +132,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 - 感谢所有贡献者和用户的支持
 - [@cuicanmx](https://github.com/cuicanmx) - 提供帮助以及创新思路
 - [@map220v](https://github.com/map220v/ubuntu-xiaomi-nabu) - 原项目
-- [@Pc1598](https://github.com/Pc1598) - sm8150-mainline-raphael内核维护
-- [Aospa-raphael-unofficial/linux](https://github.com/Aospa-raphael-unofficial/linux) - 内核项目
+- [@Pc1598](https://github.com/Pc1598) - sm8150-mainline 内核维护
+- [qaz6750/linux-downstream](https://github.com/qaz6750/linux-downstream) - 内核项目（本项目使用）
 - [sm8150-mainline/linux](https://gitlab.com/sm8150-mainline/linux) - 内核项目
 - [mu_aloha_platforms](https://github.com/Project-Aloha/mu_aloha_platforms) - 骁龙设备的 Mu UEFI

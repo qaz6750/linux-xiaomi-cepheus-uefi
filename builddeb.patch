@@ -4,7 +4,7 @@
  		mkdir -p "${pdir}/boot"
  		cp System.map "${pdir}/boot/System.map-${KERNELRELEASE}"
  		cp ${KCONFIG_CONFIG} "${pdir}/boot/config-${KERNELRELEASE}"
-+		cp "${pdir}/usr/lib/linux-image-${KERNELRELEASE}/qcom/sm8150-xiaomi-raphael.dtb" "${pdir}/boot/dtb-${KERNELRELEASE}"
++		cp "${pdir}/usr/lib/linux-image-${KERNELRELEASE}/qcom/sm8150-xiaomi-cepheus.dtb" "${pdir}/boot/dtb-${KERNELRELEASE}"
  	fi
  
  	# Not all arches have the same installed path in debian
