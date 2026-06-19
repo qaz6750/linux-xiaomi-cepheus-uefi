@@ -10,7 +10,8 @@ git -C linux log --pretty=format:'- %s (%h)' -20 > kernel-commits.txt
 patch linux/scripts/package/builddeb < builddeb.patch
 cd linux
 git add .
-git commit -m "builddeb: Add Xiaomi Cepheus DTBs to boot partition"
+# 用内联身份提交，避免 CI runner 未配置 git user 时报 "empty ident name"
+git -c user.name="cepheus-ci" -c user.email="ci@localhost" commit -m "builddeb: Add Xiaomi Cepheus DTBs to boot partition"
 
 # 统一的内核 make 封装：
 # - 始终使用 LLVM=-22 工具链 (clang-22 / ld.lld-22 等)
