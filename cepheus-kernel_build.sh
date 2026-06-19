@@ -4,7 +4,7 @@ patch linux/scripts/package/builddeb < builddeb.patch
 cd linux
 git add .
 git commit -m "builddeb: Add Xiaomi Cepheus DTBs to boot partition"
-make -j$(nproc) ARCH=arm64 LLVM=-22 cepheus_defconfig
+make -j$(nproc) ARCH=arm64 LLVM=-22 defconfig cepheus.config
 make -j$(nproc) ARCH=arm64 LLVM=-22 deb-pkg
 cd ..
 
