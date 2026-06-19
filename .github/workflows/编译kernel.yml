@@ -78,6 +78,15 @@ jobs:
         run: |
           echo "timestamp=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
       
+      # 提取实际内核版本号
+      - name: 提取内核版本号
+        id: kernel-version
+        run: |
+          # 从 linux-image deb 包名提取具体内核版本 (如 7.1.0-sm8150)
+          KERNEL_PKG_VERSION=$(dpkg-deb -f linux-image-xiaomi-cepheus.deb Package | sed 's/linux-image-//')
+          echo "提取的内核版本: $KERNEL_PKG_VERSION"
+          echo "version=$KERNEL_PKG_VERSION" >> $GITHUB_OUTPUT
+      
       # 列出编译产物
       - name: 列出编译产物
         run: ls -la *.deb || true
@@ -87,10 +96,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: kernel-v${{ inputs.kernel_version }}
-          name: "xiaomi cepheus linux内核 v${{ inputs.kernel_version }}"
+          name: "xiaomi cepheus linux内核 ${{ steps.kernel-version.outputs.version }}"
           body: |
             xiaomi cepheus linux内核
-            - 版本: ${{ inputs.kernel_version }}
+            - 内核版本: ${{ steps.kernel-version.outputs.version }}
+            - 分支: ${{ inputs.kernel_version }}
             - 构建时间: ${{ steps.get-timestamp.outputs.timestamp }}
             - 构建 ID: ${{ env.BUILD_TIMESTAMP }}
           draft: false

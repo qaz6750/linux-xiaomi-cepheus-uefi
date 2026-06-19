@@ -1,15 +1,14 @@
 # 小米 Cepheus 设备 Linux UEFI 系统镜像构建项目
 
-本项目提供用于小米 Cepheus 设备（小米9（Mi 9））的 Debian/Ubuntu Linux UEFI 系统镜像构建脚本和自动化工作流，支持桌面环境和服务器版本。
+本项目提供用于小米 Cepheus 设备（小米9（Mi 9））的 Ubuntu Linux UEFI 系统镜像构建脚本和自动化工作流，支持桌面环境和服务器版本。
 
 ## 📋 项目概述
 
 本项目包含完整的构建工具链，可用于构建适用于小米 Cepheus 设备的 Linux UEFI 系统镜像，包括：
 
 - **内核编译工作流** - 自动化编译定制的 Linux 内核
-- **Debian Desktop** - 带 Phosh 桌面环境的 Debian 系统
-- **Debian Server** - 无图形界面的 Debian 服务器系统
 - **Ubuntu Desktop** - 带 Phosh 桌面环境的 Ubuntu 系统
+- **Ubuntu GNOME** - 带 GNOME 桌面环境的 Ubuntu 系统
 - **Ubuntu Server** - 无图形界面的 Ubuntu 服务器系统
 
 ## 📋 目前工作
@@ -42,13 +41,12 @@
    - 选择 "构建系统镜像" 工作流
    - 点击 "Run workflow"
    - 选择系统类型：
-       - `debian-desktop`：Debian 桌面版
-       - `debian-server`：Debian 服务器版
-       - `ubuntu-desktop`：Ubuntu 桌面版
+       - `ubuntu-desktop`：Ubuntu Phosh 桌面版
+       - `ubuntu-gnome`：Ubuntu GNOME 桌面版
        - `ubuntu-server`：Ubuntu 服务器版
    - 内核版本号：
        - `上一步构建的内核版本号`
-   - 选择桌面环境（仅桌面版）：
+   - 选择桌面环境（仅 `ubuntu-desktop` Phosh 版）：
        - `phosh-core`：基础 Phosh 环境
        - `phosh-full`：完整的 Phosh 环境
        - `phosh-phone`：手机优化的 Phosh 环境
@@ -68,7 +66,8 @@
 - ✅ dpkg更新内核
 
 ### 桌面版额外特性
-- ✅ Phosh 移动桌面环境
+- ✅ GNOME 桌面环境（`ubuntu-gnome`）
+- ✅ Phosh 移动桌面环境（`ubuntu-desktop`）
 
 ### 服务器版额外特性
 - ✅ 网络管理器
