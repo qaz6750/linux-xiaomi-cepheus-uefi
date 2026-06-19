@@ -1,11 +1,31 @@
 set -e
-git clone https://github.com/qaz6750/linux-downstream.git --branch linux-xiaomi-$1.y --depth 1 linux
+# 浅克隆带一定深度，便于导出最近的 commit 历史用于 release 变更说明
+git clone https://github.com/qaz6750/linux-downstream.git --branch linux-xiaomi-$1.y --depth 30 linux
+
+# 在打补丁/提交之前，导出上游真实 commit 信息到工作区根目录
+# (脚本结尾会删除 linux 目录，需提前导出；这些文件供 CI 注入 release)
+git -C linux rev-parse --short HEAD > kernel-commit.txt
+git -C linux log --pretty=format:'- %s (%h)' -20 > kernel-commits.txt
+
 patch linux/scripts/package/builddeb < builddeb.patch
 cd linux
 git add .
 git commit -m "builddeb: Add Xiaomi Cepheus DTBs to boot partition"
-make -j$(nproc) ARCH=arm64 LLVM=-22 defconfig cepheus.config
-make -j$(nproc) ARCH=arm64 LLVM=-22 deb-pkg
+
+# 统一的内核 make 封装：
+# - 始终使用 LLVM=-22 工具链 (clang-22 / ld.lld-22 等)
+# - 若环境中存在 ccache，则用 ccache 包裹 clang-22 加速重复编译 (CI 缓存命中时显著提速)
+# - 本地无 ccache 时自动回退到普通编译
+kmake() {
+  if command -v ccache >/dev/null 2>&1; then
+    make -j"$(nproc)" ARCH=arm64 LLVM=-22 CC="ccache clang-22" HOSTCC="ccache clang-22" "$@"
+  else
+    make -j"$(nproc)" ARCH=arm64 LLVM=-22 "$@"
+  fi
+}
+
+kmake defconfig cepheus.config
+kmake deb-pkg
 cd ..
 
 IMAGE_DEB=$(ls -1 linux-image-*.deb 2>/dev/null | grep -v '\-dbg_' | head -n1)

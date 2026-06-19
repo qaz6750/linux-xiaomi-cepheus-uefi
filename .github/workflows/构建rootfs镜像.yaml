@@ -29,11 +29,18 @@ on:
           - phosh-full
           - phosh-phone
 
+# 同一系统类型+内核版本的重复运行只保留最新一次
+concurrency:
+  group: rootfs-${{ github.workflow }}-${{ github.event.inputs.system_type }}-${{ github.event.inputs.kernel_version }}
+  cancel-in-progress: true
+
 # 工作流配置
 jobs:
   build-system-image:
     # 在 Ubuntu 24.04 ARM 上运行
     runs-on: ubuntu-24.04-arm
+    # 防止卡死浪费额度
+    timeout-minutes: 90
     
     # 设置权限，允许创建 Release
     permissions:
@@ -52,11 +59,11 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
     
-      # 安装debootstrap和7z
+      # 安装 debootstrap 和 7zip (build.sh 用 7z 打包 rootfs)
       - name: 安装构建工具
         run: |
-          sudo apt update
-          sudo apt install -y debootstrap
+          sudo apt-get update
+          sudo apt-get install -y debootstrap 7zip
       
       # 验证参数
       - name: 验证构建参数
@@ -182,38 +189,42 @@ jobs:
       - name: 生成Release描述
         id: release-desc
         run: |
-          # 构建描述内容
-          DESCRIPTION="小米 Cepheus 设备 ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.system_category }} 镜像\n"
-          DESCRIPTION="${DESCRIPTION}- 系统版本: ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.os_version }}\n"
-          DESCRIPTION="${DESCRIPTION}- 内核版本: ${{ steps.download-kernel.outputs.kernel_pkg_version }}\n"
-          DESCRIPTION="${DESCRIPTION}- 系统镜像UUID: ${{ steps.build-image.outputs.rootfs_uuid }}\n"
-          
-          if [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-desktop" ]]; then
-            DESCRIPTION="${DESCRIPTION}- 桌面环境: ${{ env.DESKTOP_ENV }}\n"
-          fi
-          
-          DESCRIPTION="${DESCRIPTION}- 构建时间: ${{ steps.build-info.outputs.timestamp }}\n"
-          DESCRIPTION="${DESCRIPTION}- 构建 ID: ${{ env.BUILD_TIMESTAMP }}\n\n"
-          
-          # 添加特定说明
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"server"* ]]; then
-            DESCRIPTION="${DESCRIPTION}说明：\n"
-            DESCRIPTION="${DESCRIPTION}- 这是一个无图形界面的服务器版本\n"
-            DESCRIPTION="${DESCRIPTION}- 包含基础网络管理工具\n"
-            DESCRIPTION="${DESCRIPTION}- 已安装 SSH 服务器\n"
-            DESCRIPTION="${DESCRIPTION}- 已安装中文语言支持\n"
-            DESCRIPTION="${DESCRIPTION}- 包含必要的设备驱动和固件\n"
-          else
-            DESCRIPTION="${DESCRIPTION}说明：\n"
-            DESCRIPTION="${DESCRIPTION}- 这是一个带有图形界面的桌面版本\n"
-            DESCRIPTION="${DESCRIPTION}- 已安装 SSH 服务器\n"
-            DESCRIPTION="${DESCRIPTION}- 已安装中文语言支持\n"
-            DESCRIPTION="${DESCRIPTION}- 包含必要的设备驱动和固件\n"
-          fi
-          
-          echo "description<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$DESCRIPTION" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # 构建结构化 Markdown 描述
+          {
+            echo "description<<EOF"
+            echo "## 📱 小米 Cepheus (Mi 9) ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.system_category }} 镜像"
+            echo ""
+            echo "| 项目 | 值 |"
+            echo "| --- | --- |"
+            echo "| 系统版本 | ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.os_version }} |"
+            echo "| 内核版本 | \`${{ steps.download-kernel.outputs.kernel_pkg_version }}\` |"
+            echo "| 系统类型 | ${{ env.SYSTEM_TYPE }} |"
+            if [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-desktop" ]]; then
+              echo "| 桌面环境 | ${{ env.DESKTOP_ENV }} (Phosh) |"
+            elif [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-gnome" ]]; then
+              echo "| 桌面环境 | GNOME |"
+            fi
+            echo "| 镜像 UUID | \`${{ steps.build-image.outputs.rootfs_uuid }}\` |"
+            echo "| 构建时间 | ${{ steps.build-info.outputs.timestamp }} |"
+            echo "| 构建 ID | ${{ env.BUILD_TIMESTAMP }} |"
+            echo ""
+            echo "### ✨ 镜像特性"
+            if [[ "${{ env.SYSTEM_TYPE }}" == *"server"* ]]; then
+              echo "- 无图形界面的服务器版本"
+              echo "- 预装 NetworkManager 网络管理工具"
+              echo "- 开机 15 秒自动熄屏，\`leijun\`/\`jinfan\` 控制屏幕"
+            else
+              echo "- 带图形界面的桌面版本"
+            fi
+            echo "- 已安装 SSH 服务器 (允许 root / 密码登录，默认 user/root 密码 1234)"
+            echo "- 简体中文语言环境 + 清华软件源"
+            echo "- USB NCM 网络共享 (设备 IP \`172.16.42.1\`)"
+            echo "- 包含设备驱动、固件与 ALSA 音频配置"
+            echo ""
+            echo "### 🔧 安装"
+            echo "解压 \`rootfs.7z\` 得到 \`rootfs.img\`，刷入 linux 分区后参考 README 配置 ESP/GRUB。"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
       
       # 创建 GitHub Release 并上传镜像
       - name: 创建 Release 并上传镜像
