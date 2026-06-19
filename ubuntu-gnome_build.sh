@@ -8,17 +8,17 @@ then
   exit
 fi
 
-# 设置 Debian 版本
-DEBIAN_VERSION="trixie"
+# 设置 Ubuntu 版本
+UBUNTU_VERSION="noble"
 
 # 创建根文件系统镜像
-truncate -s 6G rootfs.img
+truncate -s 8G rootfs.img
 mkfs.ext4 rootfs.img
 mkdir rootdir
 mount -o loop rootfs.img rootdir
 
 # debootstrap生成镜像
-debootstrap --arch=arm64 $DEBIAN_VERSION rootdir https://mirrors.tuna.tsinghua.edu.cn/debian/
+debootstrap --arch=arm64 $UBUNTU_VERSION rootdir https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/
 
 # 绑定系统目录
 mount --bind /dev rootdir/dev
@@ -38,10 +38,10 @@ export DEBIAN_FRONTEND=noninteractive
 
 # 配置清华镜像源
 cat > rootdir/etc/apt/sources.list << 'EOF'
-deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib non-free non-free-firmware
-deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-updates main contrib non-free non-free-firmware
-deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-backports main contrib non-free non-free-firmware
-deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-updates main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-backports main restricted universe multiverse
+deb http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse
 EOF
 
 # 更新系统
@@ -49,13 +49,41 @@ chroot rootdir apt update
 chroot rootdir apt upgrade -y
 
 # 安装基础软件包
-chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano systemd-boot initramfs-tools chrony curl wget dnsmasq iptables iproute2 $1
+chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano systemd-boot initramfs-tools chrony curl wget dnsmasq iptables iproute2
 
 # 安装设备特定软件包
 chroot rootdir apt install -y rmtfs protection-domain-mapper tqftpserv
 
 # 安装语言包和设置默认语言为简体中文
 chroot rootdir apt install -y locales locales-all tzdata
+chroot rootdir apt install -y \
+	fonts-arphic-uming \
+	language-pack-gnome-zh-hans-base \
+	language-pack-zh-hans-base \
+	language-pack-zh-hans \
+	language-pack-gnome-zh-hans \
+	fonts-arphic-ukai \
+	fonts-noto-cjk \
+	fonts-noto-cjk-extra \
+	gnome-user-docs-zh-hans \
+	libopencc-data \
+	libmarisa0 \
+	libopencc1.1 \
+	libpinyin-data \
+	libpinyin15 \
+	ibus-libpinyin \
+	ibus-table \
+	ibus-table-wubi \
+	language-pack-gnome-zh-hant-base \
+	language-pack-zh-hant-base \
+	language-pack-zh-hant \
+	language-pack-gnome-zh-hant \
+	libchewing3-data \
+	libchewing3 \
+	ibus-chewing \
+	ibus-table-cangjie3 \
+	ibus-table-cangjie5 \
+	ibus-table-quick-classic
 	
 chroot rootdir sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
 chroot rootdir locale-gen zh_CN.UTF-8
@@ -68,15 +96,12 @@ chroot rootdir dpkg-reconfigure -f noninteractive tzdata
 sed -i '/ConditionKernelVersion/d' rootdir/lib/systemd/system/pd-mapper.service
 
 # 复制并安装内核包（从预下载的目录）
-cp xiaomi-cepheus-debs_$2/*-xiaomi-cepheus.deb rootdir/tmp/
+cp xiaomi-cepheus-debs_$1/*-xiaomi-cepheus.deb rootdir/tmp/
 chroot rootdir dpkg -i /tmp/linux-image-xiaomi-cepheus.deb
 chroot rootdir dpkg -i /tmp/linux-headers-xiaomi-cepheus.deb
 chroot rootdir dpkg -i /tmp/firmware-xiaomi-cepheus.deb
 chroot rootdir dpkg -i /tmp/alsa-xiaomi-cepheus.deb
 rm rootdir/tmp/*-xiaomi-cepheus.deb
-
-# 启用 Phosh 服务
-chroot rootdir systemctl enable phosh
 
 # 配置 NCM
 cat > rootdir/etc/dnsmasq.d/usb-ncm.conf << 'EOF'
@@ -135,6 +160,12 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 EOF
 chroot rootdir systemctl enable usb-ncm
+
+# 安装 GNOME 桌面环境
+chroot rootdir apt install -y gnome-core gdm3
+
+# 启用 GNOME 显示管理器
+chroot rootdir systemctl enable gdm3
 
 #EFI
 chroot rootdir apt install -y grub-efi-arm64

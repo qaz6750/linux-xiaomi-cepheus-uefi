@@ -8,19 +8,18 @@ on:
       system_type:
         description: '系统类型'
         required: true
-        default: 'debian-desktop'
+        default: 'ubuntu-gnome'
         type: choice
         options:
-          - debian-desktop
-          - debian-server
           - ubuntu-desktop
+          - ubuntu-gnome
           - ubuntu-server
       kernel_version:
         description: '内核版本号 (从 Release 下载对应版本)'
         required: true
         default: '7.1'
       desktop_environment:
-        description: '桌面环境 (仅适用于Desktop版本)'
+        description: 'Phosh 变体 (仅 ubuntu-desktop 生效)'
         required: false
         default: ''
         type: choice
@@ -67,9 +66,9 @@ jobs:
           echo "内核版本: ${{ env.KERNEL_VERSION }}"
           echo "桌面环境: ${{ env.DESKTOP_ENV }}"
           
-          # 检查Desktop版本是否提供了桌面环境参数
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* && -z "${{ inputs.desktop_environment }}" ]]; then
-            echo "错误: Desktop版本必须指定桌面环境参数"
+          # 检查 Phosh 桌面版本是否提供了桌面环境参数（仅 ubuntu-desktop 需要）
+          if [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-desktop" && -z "${{ inputs.desktop_environment }}" ]]; then
+            echo "错误: ubuntu-desktop (Phosh) 版本必须指定桌面环境参数"
             exit 1
           fi
       
@@ -92,8 +91,8 @@ jobs:
           curl -L -o xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-cepheus.deb \
             "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-cepheus.deb" || echo "下载 firmware-xiaomi-cepheus.deb 失败，可能 Release 不存在"
           
-          # Desktop版本需要额外的alsa包
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
+          # 桌面版本需要额外的alsa包
+          if [[ "${{ env.SYSTEM_TYPE }}" != *"server"* ]]; then
             curl -L -o xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/alsa-xiaomi-cepheus.deb \
               "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/alsa-xiaomi-cepheus.deb" || echo "下载 alsa-xiaomi-cepheus.deb 失败，可能 Release 不存在"
           fi
@@ -121,14 +120,11 @@ jobs:
           
           # 根据系统类型执行对应的构建脚本
           case "${{ env.SYSTEM_TYPE }}" in
-            "debian-desktop")
-              sudo sh debian-desktop_build.sh "${{ env.DESKTOP_ENV }}" "${{ env.KERNEL_VERSION }}"
-              ;;
-            "debian-server")
-              sudo sh debian-server_build.sh "${{ env.KERNEL_VERSION }}"
-              ;;
             "ubuntu-desktop")
               sudo sh ubuntu-desktop_build.sh "${{ env.DESKTOP_ENV }}" "${{ env.KERNEL_VERSION }}"
+              ;;
+            "ubuntu-gnome")
+              sudo sh ubuntu-gnome_build.sh "${{ env.KERNEL_VERSION }}"
               ;;
             "ubuntu-server")
               sudo sh ubuntu-server_build.sh "${{ env.KERNEL_VERSION }}"
@@ -161,11 +157,7 @@ jobs:
           
           # 获取系统版本信息
           case "${{ env.SYSTEM_TYPE }}" in
-            "debian-desktop"|"debian-server")
-              OS_NAME="Debian"
-              OS_VERSION="trixie"
-              ;;
-            "ubuntu-desktop"|"ubuntu-server")
+            "ubuntu-desktop"|"ubuntu-gnome"|"ubuntu-server")
               OS_NAME="Ubuntu"
               OS_VERSION="noble"
               ;;
@@ -173,11 +165,11 @@ jobs:
           echo "os_name=$OS_NAME" >> $GITHUB_OUTPUT
           echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
           
-          # 确定系统类别
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
-            SYSTEM_CATEGORY="Desktop"
-          else
+          # 确定系统类别（server 为服务器版，其余为桌面版）
+          if [[ "${{ env.SYSTEM_TYPE }}" == *"server"* ]]; then
             SYSTEM_CATEGORY="Server"
+          else
+            SYSTEM_CATEGORY="Desktop"
           fi
           echo "system_category=$SYSTEM_CATEGORY" >> $GITHUB_OUTPUT
       
@@ -187,14 +179,14 @@ jobs:
         run: |
           # 生成Release标签
           TAG="${{ env.SYSTEM_TYPE }}-v${{ env.KERNEL_VERSION }}"
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
+          if [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-desktop" ]]; then
             TAG="${TAG}-${{ env.DESKTOP_ENV }}"
           fi
           echo "tag_name=$TAG" >> $GITHUB_OUTPUT
           
           # 生成Release名称
           RELEASE_NAME="${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.system_category }} 镜像 v${{ env.KERNEL_VERSION }}"
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
+          if [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-desktop" ]]; then
             RELEASE_NAME="${RELEASE_NAME} (${{ env.DESKTOP_ENV }})"
           fi
           echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
@@ -209,7 +201,7 @@ jobs:
           DESCRIPTION="${DESCRIPTION}- 内核版本: ${{ steps.download-kernel.outputs.kernel_pkg_version }}\n"
           DESCRIPTION="${DESCRIPTION}- 系统镜像UUID: ${{ steps.build-image.outputs.rootfs_uuid }}\n"
           
-          if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
+          if [[ "${{ env.SYSTEM_TYPE }}" == "ubuntu-desktop" ]]; then
             DESCRIPTION="${DESCRIPTION}- 桌面环境: ${{ env.DESKTOP_ENV }}\n"
           fi
           
@@ -227,7 +219,6 @@ jobs:
           else
             DESCRIPTION="${DESCRIPTION}说明：\n"
             DESCRIPTION="${DESCRIPTION}- 这是一个带有图形界面的桌面版本\n"
-            DESCRIPTION="${DESCRIPTION}- 包含 ${{ env.DESKTOP_ENV }} 桌面环境\n"
             DESCRIPTION="${DESCRIPTION}- 已安装 SSH 服务器\n"
             DESCRIPTION="${DESCRIPTION}- 已安装中文语言支持\n"
             DESCRIPTION="${DESCRIPTION}- 包含必要的设备驱动和固件\n"
