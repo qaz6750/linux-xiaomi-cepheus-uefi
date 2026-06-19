@@ -28,9 +28,9 @@ mount --bind /sys rootdir/sys
 
 # 配置网络和主机名
 echo "nameserver 1.1.1.1" | tee rootdir/etc/resolv.conf
-echo "xiaomi-raphael" | tee rootdir/etc/hostname
+echo "xiaomi-cepheus" | tee rootdir/etc/hostname
 echo "127.0.0.1 localhost
-127.0.1.1 xiaomi-raphael" | tee rootdir/etc/hosts
+127.0.1.1 xiaomi-cepheus" | tee rootdir/etc/hosts
 
 # Chroot 安装步骤
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH
@@ -68,12 +68,12 @@ chroot rootdir dpkg-reconfigure -f noninteractive tzdata
 sed -i '/ConditionKernelVersion/d' rootdir/lib/systemd/system/pd-mapper.service
 
 # 复制并安装内核包（从预下载的目录）
-cp xiaomi-raphael-debs_$2/*-xiaomi-raphael.deb rootdir/tmp/
-chroot rootdir dpkg -i /tmp/linux-image-xiaomi-raphael.deb
-chroot rootdir dpkg -i /tmp/linux-headers-xiaomi-raphael.deb
-chroot rootdir dpkg -i /tmp/firmware-xiaomi-raphael.deb
-chroot rootdir dpkg -i /tmp/alsa-xiaomi-raphael.deb
-rm rootdir/tmp/*-xiaomi-raphael.deb
+cp xiaomi-cepheus-debs_$2/*-xiaomi-cepheus.deb rootdir/tmp/
+chroot rootdir dpkg -i /tmp/linux-image-xiaomi-cepheus.deb
+chroot rootdir dpkg -i /tmp/linux-headers-xiaomi-cepheus.deb
+chroot rootdir dpkg -i /tmp/firmware-xiaomi-cepheus.deb
+chroot rootdir dpkg -i /tmp/alsa-xiaomi-cepheus.deb
+rm rootdir/tmp/*-xiaomi-cepheus.deb
 
 # 启用 Phosh 服务
 chroot rootdir systemctl enable phosh
@@ -100,7 +100,7 @@ echo 0x1d6b > $G/idVendor
 echo 0x0104 > $G/idProduct
 echo 0x0200 > $G/bcdUSB
 mkdir -p $G/strings/0x409
-echo xiaomi-raphael > $G/strings/0x409/manufacturer
+echo xiaomi-cepheus > $G/strings/0x409/manufacturer
 echo NCM > $G/strings/0x409/product
 echo $(cat /etc/machine-id) > $G/strings/0x409/serialnumber
 mkdir -p $G/configs/c.1

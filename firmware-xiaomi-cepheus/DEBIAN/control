@@ -1,0 +1,7 @@
+Package: firmware-xiaomi-cepheus
+Version: 1.0
+Architecture: arm64
+Maintainer: cepheus <anonymous@localhost>
+Conflicts: linux-firmware
+Replaces: linux-firmware
+Description: Firmware blobs for Xiaomi Mi 9

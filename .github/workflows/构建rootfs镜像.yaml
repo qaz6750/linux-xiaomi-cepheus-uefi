@@ -18,7 +18,7 @@ on:
       kernel_version:
         description: '内核版本号 (从 Release 下载对应版本)'
         required: true
-        default: '6.18'
+        default: '7.1'
       desktop_environment:
         description: '桌面环境 (仅适用于Desktop版本)'
         required: false
@@ -78,38 +78,38 @@ jobs:
         id: download-kernel
         run: |
           # 从 Release 下载指定版本的内核包
-          mkdir -p xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}
+          mkdir -p xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}
           
           echo "正在下载内核包 (版本: ${{ env.KERNEL_VERSION }})..."
           
           # 下载通用内核包
-          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb \
-            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" || echo "下载 linux-image-xiaomi-raphael.deb 失败，可能 Release 不存在"
+          curl -L -o xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-cepheus.deb \
+            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-image-xiaomi-cepheus.deb" || echo "下载 linux-image-xiaomi-cepheus.deb 失败，可能 Release 不存在"
           
-          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb \
-            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb" || echo "下载 linux-headers-xiaomi-raphael.deb 失败，可能 Release 不存在"
+          curl -L -o xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-cepheus.deb \
+            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-cepheus.deb" || echo "下载 linux-headers-xiaomi-cepheus.deb 失败，可能 Release 不存在"
           
-          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb \
-            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb" || echo "下载 firmware-xiaomi-raphael.deb 失败，可能 Release 不存在"
+          curl -L -o xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-cepheus.deb \
+            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-cepheus.deb" || echo "下载 firmware-xiaomi-cepheus.deb 失败，可能 Release 不存在"
           
           # Desktop版本需要额外的alsa包
           if [[ "${{ env.SYSTEM_TYPE }}" == *"desktop"* ]]; then
-            curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb \
-              "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb" || echo "下载 alsa-xiaomi-raphael.deb 失败，可能 Release 不存在"
+            curl -L -o xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/alsa-xiaomi-cepheus.deb \
+              "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/alsa-xiaomi-cepheus.deb" || echo "下载 alsa-xiaomi-cepheus.deb 失败，可能 Release 不存在"
           fi
           
           # 检查是否下载成功
           echo "下载的内核包列表:"
-          ls -la xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/ || echo "目录为空"
+          ls -la xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/ || echo "目录为空"
           
           # 检查必要文件是否存在
-          if [ ! -f "xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" ]; then
+          if [ ! -f "xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-cepheus.deb" ]; then
             echo "错误: 必要的内核包未下载成功"
             exit 1
           fi
           
           # 提取内核包中的实际内核版本
-          KERNEL_PKG_VERSION=$(dpkg-deb -f xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb Package | sed 's/linux-image-//')
+          KERNEL_PKG_VERSION=$(dpkg-deb -f xiaomi-cepheus-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-cepheus.deb Package | sed 's/linux-image-//')
           echo "提取的内核包版本: $KERNEL_PKG_VERSION"
           echo "kernel_pkg_version=$KERNEL_PKG_VERSION" >> $GITHUB_OUTPUT
       
@@ -204,7 +204,7 @@ jobs:
         id: release-desc
         run: |
           # 构建描述内容
-          DESCRIPTION="小米 Raphael 设备 ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.system_category }} 镜像\n"
+          DESCRIPTION="小米 Cepheus 设备 ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.system_category }} 镜像\n"
           DESCRIPTION="${DESCRIPTION}- 系统版本: ${{ steps.build-info.outputs.os_name }} ${{ steps.build-info.outputs.os_version }}\n"
           DESCRIPTION="${DESCRIPTION}- 内核版本: ${{ steps.download-kernel.outputs.kernel_pkg_version }}\n"
           DESCRIPTION="${DESCRIPTION}- 系统镜像UUID: ${{ steps.build-image.outputs.rootfs_uuid }}\n"
@@ -266,4 +266,4 @@ jobs:
           echo "清理临时文件..."
           sudo rm -f rootfs.img rootfs.7z 2>/dev/null || true
           sudo rm -rf rootdir 2>/dev/null || true
-          rm -rf xiaomi-raphael-debs_* 2>/dev/null || true
+          rm -rf xiaomi-cepheus-debs_* 2>/dev/null || true
