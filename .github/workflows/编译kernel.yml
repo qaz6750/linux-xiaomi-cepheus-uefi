@@ -10,11 +10,18 @@ on:
         required: true
         default: '7.1'
 
+# 同一内核版本的重复运行只保留最新一次，取消旧的以节省 runner 时间
+concurrency:
+  group: kernel-${{ github.workflow }}-${{ github.event.inputs.kernel_version }}
+  cancel-in-progress: true
+
 # 工作流配置
 jobs:
   build-kernel:
     # 在 Ubuntu 24.04 ARM 上运行
     runs-on: ubuntu-24.04-arm
+    # 防止卡死浪费额度
+    timeout-minutes: 120
     
     # 设置权限，允许创建 Release
     permissions:
@@ -24,6 +31,8 @@ jobs:
     # 定义环境变量
     env:
       BUILD_TIMESTAMP: ${{ format('{0}', github.run_id) }}-${{ github.run_number }}
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 5G
     
     steps:
       # 检出代码
@@ -44,33 +53,32 @@ jobs:
       
       # 设置 ccache 缓存
       - name: 设置 ccache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: ~/.ccache
-          key: ${{ runner.os }}-ccache-kernel-${{ inputs.kernel_version }}
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-kernel-${{ inputs.kernel_version }}-${{ github.run_id }}
           restore-keys: |
+            ${{ runner.os }}-ccache-kernel-${{ inputs.kernel_version }}-
             ${{ runner.os }}-ccache-kernel-
-      
-      # 安装并配置 ccache
+
+      # 安装并初始化 ccache
       - name: 安装配置 ccache
         run: |
           sudo apt install -y ccache
-          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
-          echo "CCACHE_MAXSIZE=5G" >> $GITHUB_ENV
-          echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
-      
+          mkdir -p "$CCACHE_DIR"
+          ccache -M "$CCACHE_MAXSIZE"
+          ccache -z
+
       # 编译内核
       - name: 编译内核
-        env:
-          CCACHE_DIR: ${{ env.CCACHE_DIR }}
-          PATH: ${{ env.PATH }}
         run: |
-          # 导出 ccache 环境变量
-          export CCACHE_DIR="$HOME/.ccache"
-          export PATH="/usr/lib/ccache:$PATH"
-          
-          # 执行内核编译脚本
-          sudo sh cepheus-kernel_build.sh ${{ inputs.kernel_version }}
+          # 内核编译无需 root，保留普通用户身份才能让 ccache 生效
+          # 通过 CC/HOSTCC 显式指定 ccache 包裹 clang，加速重复编译
+          sh cepheus-kernel_build.sh ${{ inputs.kernel_version }}
+
+      # 输出 ccache 命中统计
+      - name: ccache 统计
+        run: ccache -s
       
       # 获取当前时间戳
       - name: 获取构建时间
@@ -86,6 +94,21 @@ jobs:
           KERNEL_PKG_VERSION=$(dpkg-deb -f linux-image-xiaomi-cepheus.deb Package | sed 's/linux-image-//')
           echo "提取的内核版本: $KERNEL_PKG_VERSION"
           echo "version=$KERNEL_PKG_VERSION" >> $GITHUB_OUTPUT
+
+      # 读取内核 commit 信息 (由 cepheus-kernel_build.sh 导出)
+      - name: 读取内核 commit 信息
+        id: kernel-commit
+        run: |
+          # 当前 HEAD 短哈希
+          COMMIT=$(cat kernel-commit.txt 2>/dev/null || echo "unknown")
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "上游 commit: $COMMIT"
+
+          # 最近 commit 列表，作为多行输出注入 release
+          echo "log<<KERNEL_LOG_EOF" >> $GITHUB_OUTPUT
+          cat kernel-commits.txt 2>/dev/null >> $GITHUB_OUTPUT || echo "- (无 commit 记录)" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "KERNEL_LOG_EOF" >> $GITHUB_OUTPUT
       
       # 列出编译产物
       - name: 列出编译产物
@@ -96,13 +119,33 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: kernel-v${{ inputs.kernel_version }}
-          name: "xiaomi cepheus linux内核 ${{ steps.kernel-version.outputs.version }}"
+          name: "小米 Cepheus (Mi 9) 内核 ${{ steps.kernel-version.outputs.version }}"
           body: |
-            xiaomi cepheus linux内核
-            - 内核版本: ${{ steps.kernel-version.outputs.version }}
-            - 分支: ${{ inputs.kernel_version }}
-            - 构建时间: ${{ steps.get-timestamp.outputs.timestamp }}
-            - 构建 ID: ${{ env.BUILD_TIMESTAMP }}
+            ## 🧠 小米 Cepheus (Mi 9) Linux 内核
+
+            | 项目 | 值 |
+            | --- | --- |
+            | 内核版本 | `${{ steps.kernel-version.outputs.version }}` |
+            | 源码分支 | `linux-xiaomi-${{ inputs.kernel_version }}.y` |
+            | 上游 commit | `${{ steps.kernel-commit.outputs.commit }}` |
+            | SoC | Qualcomm SM8150 (Snapdragon 855) |
+            | 工具链 | LLVM 22 (clang) |
+            | 构建时间 | ${{ steps.get-timestamp.outputs.timestamp }} |
+            | 构建 ID | ${{ env.BUILD_TIMESTAMP }} |
+
+            ### 📦 产物
+            - `linux-image-xiaomi-cepheus.deb` — 内核镜像 + 模块 + DTB
+            - `linux-headers-xiaomi-cepheus.deb` — 内核头文件
+            - `firmware-xiaomi-cepheus.deb` — 设备固件
+            - `alsa-xiaomi-cepheus.deb` — ALSA UCM 音频配置
+
+            <details>
+            <summary>📝 最近内核变更 (最新 20 条 commit)</summary>
+
+            ${{ steps.kernel-commit.outputs.log }}
+            </details>
+
+            > 配合「构建系统镜像」工作流使用，选择内核版本 `${{ inputs.kernel_version }}` 即可。
           draft: false
           prerelease: false
           files: |
