@@ -31,6 +31,8 @@ jobs:
     # 定义环境变量
     env:
       BUILD_TIMESTAMP: ${{ format('{0}', github.run_id) }}-${{ github.run_number }}
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 5G
     
     steps:
       # 检出代码
@@ -49,10 +51,34 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 22
       
+      # 设置 ccache 缓存
+      - name: 设置 ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-kernel-${{ inputs.kernel_version }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-kernel-${{ inputs.kernel_version }}-
+            ${{ runner.os }}-ccache-kernel-
+
+      # 安装并初始化 ccache
+      - name: 安装配置 ccache
+        run: |
+          sudo apt install -y ccache
+          mkdir -p "$CCACHE_DIR"
+          ccache -M "$CCACHE_MAXSIZE"
+          ccache -z
+
       # 编译内核
       - name: 编译内核
         run: |
+          # 内核编译无需 root，保留普通用户身份才能让 ccache 生效
+          # 通过 CC/HOSTCC 显式指定 ccache 包裹 clang，加速重复编译
           sh cepheus-kernel_build.sh ${{ inputs.kernel_version }}
+
+      # 输出 ccache 命中统计
+      - name: ccache 统计
+        run: ccache -s
       
       # 获取当前时间戳
       - name: 获取构建时间
