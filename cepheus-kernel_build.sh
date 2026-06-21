@@ -44,5 +44,10 @@ cp linux/arch/arm64/boot/dts/qcom/sm8150-xiaomi-cepheus.dtb .
 
 rm -rf linux
 
+# 用内核版本号更新 firmware/alsa 包版本，确保每次构建都产生新版本
+KVER=$(dpkg-deb -f linux-image-xiaomi-cepheus.deb Version | cut -d- -f1)
+sed -i "s/^Version: .*/Version: $KVER/" firmware-xiaomi-cepheus/DEBIAN/control
+sed -i "s/^Version: .*/Version: $KVER/" alsa-xiaomi-cepheus/DEBIAN/control
+
 dpkg-deb --build --root-owner-group firmware-xiaomi-cepheus
 dpkg-deb --build --root-owner-group alsa-xiaomi-cepheus
