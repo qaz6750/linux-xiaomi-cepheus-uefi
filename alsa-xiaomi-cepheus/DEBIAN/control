@@ -1,6 +1,6 @@
 Package: alsa-xiaomi-cepheus
 Version: 1.0
 Architecture: arm64
-Maintainer: GengWei1997 <anonymous@localhost>
+Maintainer: XiaoYeZi <qaz6750@outlook.com>
 Depends: alsa-ucm-conf
 Description: Alsa UCM configurations for Xiaomi Mi 9
