@@ -6,6 +6,7 @@ log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05] $*"; }
 UBUNTU_VERSION="${UBUNTU_VERSION:-noble}"
 UBUNTU_MIRROR="${UBUNTU_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/}"
 UBUNTU_SECURITY_MIRROR="${UBUNTU_SECURITY_MIRROR:-http://ports.ubuntu.com/ubuntu-ports/}"
+APT_RETRIES="${APT_RETRIES:-3}"
 
 log "📡 配置 apt 源并更新缓存"
 
@@ -22,6 +23,7 @@ deb ${UBUNTU_SECURITY_MIRROR} ${UBUNTU_VERSION}-security main restricted univers
 EOF
 
 log "  └─ 执行 apt update..."
-chroot rootdir apt-get -q update
+apt_options=(-o "Acquire::Retries=${APT_RETRIES}" -o "Dpkg::Use-Pty=0")
+chroot rootdir apt-get -q "${apt_options[@]}" update
 
 log "✅ apt 配置完成"

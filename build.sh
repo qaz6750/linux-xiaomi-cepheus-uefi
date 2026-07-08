@@ -48,6 +48,10 @@ export HOSTNAME="xiaomi-cepheus"
 export KERNEL_DEBS_DIR="${KERNEL_DEBS_DIR:-xiaomi-cepheus-debs_$KERNEL_VERSION}"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 export DEBIAN_FRONTEND="noninteractive"
+export BUILD_JOBS="${BUILD_JOBS:-$(nproc)}"
+export APT_RETRIES="${APT_RETRIES:-3}"
+export APT_UPGRADE="${APT_UPGRADE:-true}"
+export SEVENZIP_ARGS="${SEVENZIP_ARGS:--mmt=${BUILD_JOBS}}"
 
 # 打印构建信息
 log "========================================== 🎉"
@@ -57,6 +61,8 @@ log "系统类型:   $SYSTEM_TYPE 🖥️"
 log "内核版本:   $KERNEL_VERSION 🧠"
 log "Ubuntu 版本: $UBUNTU_VERSION 🦁"
 log "镜像大小:   $IMAGE_SIZE 💾"
+log "并行任务:   $BUILD_JOBS ⚙️"
+log "apt 重试:   $APT_RETRIES 🔁"
 if [ "$IS_DESKTOP" = "true" ]; then
   log "桌面环境:   $DESKTOP_ENV 🎨"
 fi
