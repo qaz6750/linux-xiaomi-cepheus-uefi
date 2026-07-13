@@ -1,0 +1,188 @@
+name: 构建系统镜像
+
+on:
+  workflow_dispatch:
+    inputs:
+      system_types:
+        description: 系统类型，多个值用逗号分隔
+        required: true
+        default: ubuntu-server,ubuntu-gnome,ubuntu-phosh
+        type: string
+      kernel_versions:
+        description: 内核 Release 版本，多个值用逗号分隔
+        required: true
+        default: '7.1'
+        type: string
+      phosh_variants:
+        description: Phosh 变体，多个值用逗号分隔
+        required: false
+        default: phosh-full
+        type: string
+      kernel_repository:
+        description: 提供 kernel-v* Release 的仓库，留空使用当前仓库
+        required: false
+        default: ''
+        type: string
+      publish_release:
+        description: 构建成功后更新统一 Release
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: build-system-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  UBUNTU_VERSION: noble
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  prepare:
+    name: 生成构建矩阵
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 生成矩阵
+        id: matrix
+        env:
+          SYSTEM_TYPES: ${{ inputs.system_types }}
+          KERNEL_VERSIONS: ${{ inputs.kernel_versions }}
+          DESKTOP_ENVIRONMENTS: ${{ inputs.phosh_variants }}
+        run: |
+          if ! command -v jq >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+          matrix=$(ci/generate-matrix.sh)
+          echo "$matrix" | jq .
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.system_type }} / kernel-${{ matrix.kernel_version }}${{ matrix.desktop_env && format(' / {0}', matrix.desktop_env) || '' }}
+    needs: prepare
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      SYSTEM_TYPE: ${{ matrix.system_type }}
+      KERNEL_VERSION: ${{ matrix.kernel_version }}
+      DESKTOP_ENV: ${{ matrix.desktop_env }}
+      KERNEL_REPOSITORY: ${{ inputs.kernel_repository || github.repository }}
+      KERNEL_DEBS_DIR: xiaomi-cepheus-debs_${{ matrix.kernel_version }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 安装构建工具
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap 7zip jq
+
+      - name: 下载内核包
+        run: |
+          set -euo pipefail
+          mkdir -p "$KERNEL_DEBS_DIR"
+          release_url="https://github.com/${KERNEL_REPOSITORY}/releases/download/kernel-v${KERNEL_VERSION}"
+
+          files=(
+            linux-image-xiaomi-cepheus.deb
+            linux-headers-xiaomi-cepheus.deb
+            firmware-xiaomi-cepheus.deb
+          )
+          if [ "$SYSTEM_TYPE" != "ubuntu-server" ]; then
+            files+=(alsa-xiaomi-cepheus.deb)
+          fi
+
+          pids=()
+          for filename in "${files[@]}"; do
+            curl --fail --location --retry 3 --silent --show-error \
+              --output "$KERNEL_DEBS_DIR/$filename" "$release_url/$filename" &
+            pids+=("$!")
+          done
+          for pid in "${pids[@]}"; do
+            wait "$pid"
+          done
+
+          for filename in "${files[@]}"; do
+            dpkg-deb --info "$KERNEL_DEBS_DIR/$filename" >/dev/null
+          done
+          ls -lh "$KERNEL_DEBS_DIR"
+
+      - name: 构建 rootfs
+        run: |
+          sudo --preserve-env=SYSTEM_TYPE,KERNEL_VERSION,DESKTOP_ENV,KERNEL_DEBS_DIR,UBUNTU_VERSION \
+            ./build.sh "$SYSTEM_TYPE" "$KERNEL_VERSION" "$DESKTOP_ENV"
+
+      - name: 生成产物与元数据
+        id: artifact
+        run: |
+          artifact_name=$(sudo --preserve-env=SYSTEM_TYPE,KERNEL_VERSION,DESKTOP_ENV,KERNEL_DEBS_DIR,UBUNTU_VERSION \
+            ci/package-artifact.sh)
+          sudo chown -R "$USER:$USER" dist
+          echo "name=$artifact_name" >> "$GITHUB_OUTPUT"
+          ls -lh dist
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: 清理挂载点
+        if: always()
+        run: |
+          sudo umount rootdir/sys 2>/dev/null || true
+          sudo umount rootdir/proc 2>/dev/null || true
+          sudo umount rootdir/dev/pts 2>/dev/null || true
+          sudo umount rootdir/dev 2>/dev/null || true
+          sudo umount rootdir 2>/dev/null || true
+
+  release:
+    name: 发布统一 Release
+    if: ${{ inputs.publish_release }}
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 下载全部构建产物
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+          pattern: rootfs-*
+          merge-multiple: false
+
+      - name: 汇总 Release
+        run: |
+          if ! command -v jq >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+          ci/prepare-release.sh
+          cat release-body.md
+          ls -lh release-files
+
+      - name: 更新 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rootfs-latest
+          name: 小米 Cepheus UEFI 系统镜像
+          body_path: release-body.md
+          files: release-files/*
+          fail_on_unmatched_files: false
+          make_latest: true

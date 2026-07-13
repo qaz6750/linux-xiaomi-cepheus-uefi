@@ -3,9 +3,9 @@ set -e
 
 # 小米 Cepheus (Mi 9) Linux UEFI 系统镜像构建编排器
 # 用法: sudo ./build.sh <system_type> <kernel_version> [desktop_env]
-#   system_type : ubuntu-server | ubuntu-gnome | ubuntu-desktop
+#   system_type : ubuntu-server | ubuntu-gnome | ubuntu-phosh
 #   kernel_version : 内核版本号 (用于定位 xiaomi-cepheus-debs_<ver> 目录)
-#   desktop_env : 仅 ubuntu-desktop(Phosh) 生效 (phosh-core/phosh-full/phosh-phone)
+#   desktop_env : 仅 ubuntu-phosh 生效 (phosh-core/phosh-full/phosh-phone)
 
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
@@ -16,9 +16,14 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # 解析参数
-SYSTEM_TYPE="${1:?请指定系统类型 (ubuntu-server|ubuntu-gnome|ubuntu-desktop)}"
+SYSTEM_TYPE="${1:?请指定系统类型 (ubuntu-server|ubuntu-gnome|ubuntu-phosh)}"
 KERNEL_VERSION="${2:?请指定内核版本号}"
 DESKTOP_ENV_ARG="${3:-phosh-full}"
+
+if [ "$SYSTEM_TYPE" = "ubuntu-desktop" ]; then
+  log "提示: ubuntu-desktop 已更名为 ubuntu-phosh，本次构建将使用新名称"
+  SYSTEM_TYPE="ubuntu-phosh"
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -51,6 +56,7 @@ export DEBIAN_FRONTEND="noninteractive"
 export BUILD_JOBS="${BUILD_JOBS:-$(nproc)}"
 export APT_RETRIES="${APT_RETRIES:-3}"
 export APT_UPGRADE="${APT_UPGRADE:-true}"
+export ROOTFS_FREE_SPACE_MIB="${ROOTFS_FREE_SPACE_MIB:-512}"
 export SEVENZIP_ARGS="${SEVENZIP_ARGS:--mmt=${BUILD_JOBS}}"
 
 # 打印构建信息
@@ -63,6 +69,7 @@ log "Ubuntu 版本: $UBUNTU_VERSION 🦁"
 log "镜像大小:   $IMAGE_SIZE 💾"
 log "并行任务:   $BUILD_JOBS ⚙️"
 log "apt 重试:   $APT_RETRIES 🔁"
+log "镜像剩余空间: ${ROOTFS_FREE_SPACE_MIB} MiB"
 if [ "$IS_DESKTOP" = "true" ]; then
   log "桌面环境:   $DESKTOP_ENV 🎨"
 fi

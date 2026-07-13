@@ -113,6 +113,15 @@ jobs:
       # 列出编译产物
       - name: 列出编译产物
         run: ls -la *.deb || true
+
+      # 将设备 deb 和 GRUB deb 打包，供已安装系统直接增量更新
+      - name: 生成增量更新包
+        env:
+          KERNEL_VERSION: ${{ inputs.kernel_version }}
+        run: |
+          chmod +x ci/package-update.sh scripts/install-update.sh
+          ci/package-update.sh
+          ls -lh dist
       
       # 创建 GitHub Release 并上传编译产物
       - name: 创建 Release 并上传产物
@@ -138,6 +147,7 @@ jobs:
             - `linux-headers-xiaomi-cepheus.deb` — 内核头文件
             - `firmware-xiaomi-cepheus.deb` — 设备固件
             - `alsa-xiaomi-cepheus.deb` — ALSA UCM 音频配置
+            - `cepheus-update-v${{ inputs.kernel_version }}.tar.xz` — 包含以上 deb、GRUB 与自动安装脚本的增量更新包
 
             <details>
             <summary>📝 最近内核变更 (最新 20 条 commit)</summary>
@@ -153,6 +163,8 @@ jobs:
             linux-headers-xiaomi-cepheus.deb
             firmware-xiaomi-cepheus.deb
             alsa-xiaomi-cepheus.deb
+            dist/cepheus-update-v${{ inputs.kernel_version }}.tar.xz
+            dist/cepheus-update-v${{ inputs.kernel_version }}.tar.xz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -165,3 +177,5 @@ jobs:
             *.deb
             Image.gz
             sm8150-xiaomi-cepheus.dtb
+            dist/cepheus-update-v${{ inputs.kernel_version }}.tar.xz
+            dist/cepheus-update-v${{ inputs.kernel_version }}.tar.xz.sha256

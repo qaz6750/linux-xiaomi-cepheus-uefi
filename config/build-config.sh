@@ -5,7 +5,7 @@
 SYSTEM_TYPES="
   ubuntu-server
   ubuntu-gnome
-  ubuntu-desktop
+  ubuntu-phosh
 "
 
 # 系统类型 -> 基础设置映射
@@ -25,7 +25,7 @@ system_config() {
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=gnome"
       ;;
-    "ubuntu-desktop")
+    "ubuntu-phosh")
       # Phosh 移动桌面，桌面变体由第二参数决定 (phosh-core/full/phone)
       echo "UBUNTU_VERSION=${UBUNTU_VERSION:-noble}"
       echo "IMAGE_SIZE=6G"
