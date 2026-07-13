@@ -57,7 +57,7 @@ get_packages() {
   # 基础包（UEFI 路线使用 systemd-boot/grub-efi，iptables 做 NCM NAT）
   local base_packages="bash-completion sudo apt-utils ssh openssh-server nano \
 network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata \
-language-pack-zh-hans dnsmasq iptables iproute2"
+language-pack-zh-hans dnsmasq iptables iproute2 v4l-utils"
 
   if [[ "$system_type" == *"server"* ]]; then
     echo "$base_packages"
