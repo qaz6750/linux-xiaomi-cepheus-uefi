@@ -41,7 +41,14 @@ kmake() {
   fi
 }
 
-kmake cepheus_defconfig
+if [ -f arch/arm64/configs/sm8150_base.config ] && [ -f arch/arm64/configs/cepheus.config ]; then
+  scripts/kconfig/merge_config.sh -m -O . \
+    arch/arm64/configs/sm8150_base.config \
+    arch/arm64/configs/cepheus.config
+  kmake olddefconfig
+else
+  kmake cepheus_defconfig
+fi
 kmake deb-pkg
 cd ..
 
